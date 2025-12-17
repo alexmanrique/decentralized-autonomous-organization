@@ -5,8 +5,8 @@ import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.so
 import {DAO} from "./DAO.sol";
 import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-contract DAOTreasury is Ownable {
 
+contract DAOTreasury is Ownable {
     using SafeERC20 for IERC20;
     // DAO contract reference
     DAO public dao;

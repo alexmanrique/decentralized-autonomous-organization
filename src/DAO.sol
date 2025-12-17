@@ -38,12 +38,14 @@ contract DAO is Ownable {
     uint256 votingPeriod;
     uint256 quorumVotes;
 
-    event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string description, uint256 startTime, uint256 endTime);
+    event ProposalCreated(
+        uint256 indexed proposalId, address indexed proposer, string description, uint256 startTime, uint256 endTime
+    );
     event Voted(uint256 indexed proposalId, address indexed voter, bool support, uint256 votes);
     event ProposalExecuted(uint256 indexed proposalId);
     event ProposalCanceled(uint256 indexed proposalId);
     event ConfigurationUpdated(uint256 proposalThreshold, uint256 votingPeriod, uint256 quorumVotes);
-    
+
     /**
      * @dev Constructor
      * @param _governanceToken The address of the governance token
@@ -51,7 +53,13 @@ contract DAO is Ownable {
      * @param _votingPeriod The duration of the voting period in seconds
      * @param _quorumVotes The minimum votes required for proposal to pass
      */
-    constructor(address _governanceToken, address _treasury, uint256 _proposalThreshold, uint256 _votingPeriod, uint256 _quorumVotes) Ownable(msg.sender) {
+    constructor(
+        address _governanceToken,
+        address _treasury,
+        uint256 _proposalThreshold,
+        uint256 _votingPeriod,
+        uint256 _quorumVotes
+    ) Ownable(msg.sender) {
         governanceToken = DAOGoveranceToken(_governanceToken);
         treasury = IDAOTreasury(_treasury);
         proposalThreshold = _proposalThreshold;
@@ -64,10 +72,10 @@ contract DAO is Ownable {
         require(bytes(description).length > 0, "Description cannot be empty");
         require(recipient != address(0), "Invalid recipient address");
         require(amount > 0, "Amount must be greater than zero");
-        
+
         uint256 proposalId = proposalCount++;
         Proposal storage proposal = proposals[proposalId];
-        
+
         proposal.id = proposalId;
         proposal.proposer = msg.sender;
         proposal.description = description;
@@ -80,7 +88,6 @@ contract DAO is Ownable {
         proposal.canceled = false;
 
         emit ProposalCreated(proposalId, msg.sender, description, block.timestamp, block.timestamp + votingPeriod);
-        
     }
 
     function vote(uint256 proposalId, bool support) external {
@@ -91,14 +98,14 @@ contract DAO is Ownable {
         require(!proposal.hasVoted[msg.sender], "Already voted");
         require(!proposal.canceled, "Proposal is canceled");
         require(!proposal.executed, "Proposal is executed");
-        
+
         uint256 votes = governanceToken.getVotingPower(msg.sender);
         require(votes > 0, "No voting power");
-        
+
         proposal.hasVoted[msg.sender] = true;
         proposal.votedFor[msg.sender] = support;
 
-        if(support){
+        if (support) {
             proposal.forVotes += votes;
         } else {
             proposal.againstVotes += votes;
@@ -121,28 +128,26 @@ contract DAO is Ownable {
 
     function executeProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
-        
+
         require(proposal.proposer != address(0), "Proposal not found");
         require(block.timestamp >= proposal.endTime, "Voting has not ended");
         require(!proposal.executed, "Proposal is executed");
         require(!proposal.canceled, "Proposal is canceled");
         require(proposal.forVotes + proposal.againstVotes >= quorumVotes, "Quorum not reached");
         require(proposal.forVotes > proposal.againstVotes, "Proposal is not approved");
-        
+
         proposal.executed = true;
-        
+
         treasury.approveProposal(proposalId);
-        
+
         treasury.spendFunds(proposalId, proposal.recipient, proposal.amount, proposal.token);
-        
+
         emit ProposalExecuted(proposalId);
-        
     }
 
     function setGovernanceToken(address _governanceToken) external onlyOwner {
         governanceToken = DAOGoveranceToken(_governanceToken);
     }
-
 
     /**
      * @dev Get proposal details
@@ -159,19 +164,23 @@ contract DAO is Ownable {
      * @return amount Amount of funds to be spent
      * @return token Token address for the proposal
      */
-    function getProposal(uint256 proposalId) external view returns (
-        address proposer,
-        string memory description,
-        uint256 forVotes,
-        uint256 againstVotes,
-        uint256 startTime,
-        uint256 endTime,
-        bool executed,
-        bool canceled,
-        address recipient,
-        uint256 amount,
-        address token
-    ) {
+    function getProposal(uint256 proposalId)
+        external
+        view
+        returns (
+            address proposer,
+            string memory description,
+            uint256 forVotes,
+            uint256 againstVotes,
+            uint256 startTime,
+            uint256 endTime,
+            bool executed,
+            bool canceled,
+            address recipient,
+            uint256 amount,
+            address token
+        )
+    {
         Proposal storage proposal = proposals[proposalId];
         return (
             proposal.proposer,
@@ -187,7 +196,7 @@ contract DAO is Ownable {
             proposal.token
         );
     }
-    
+
     /**
      * @dev Check if an address has voted on a proposal
      * @param proposalId ID of the proposal
@@ -199,25 +208,24 @@ contract DAO is Ownable {
         Proposal storage proposal = proposals[proposalId];
         return (proposal.hasVoted[voter], proposal.votedFor[voter]);
     }
-    
+
     /**
      * @dev Update DAO configuration (only owner)
      * @param _proposalThreshold New proposal threshold
      * @param _votingPeriod New voting period
      * @param _quorumVotes New quorum votes
      */
-    function updateConfiguration(
-        uint256 _proposalThreshold,
-        uint256 _votingPeriod,
-        uint256 _quorumVotes
-    ) external onlyOwner {
+    function updateConfiguration(uint256 _proposalThreshold, uint256 _votingPeriod, uint256 _quorumVotes)
+        external
+        onlyOwner
+    {
         proposalThreshold = _proposalThreshold;
         votingPeriod = _votingPeriod;
         quorumVotes = _quorumVotes;
-        
+
         emit ConfigurationUpdated(_proposalThreshold, _votingPeriod, _quorumVotes);
     }
-    
+
     /**
      * @dev Set the treasury contract address (only owner)
      * @param _treasury New treasury contract address
@@ -226,7 +234,7 @@ contract DAO is Ownable {
         require(_treasury != address(0), "Invalid treasury address");
         treasury = IDAOTreasury(_treasury);
     }
-    
+
     /**
      * @dev Check if a proposal has passed
      * @param proposalId ID of the proposal
@@ -234,19 +242,19 @@ contract DAO is Ownable {
      */
     function proposalPassed(uint256 proposalId) external view returns (bool passed) {
         Proposal storage proposal = proposals[proposalId];
-        
+
         if (proposal.proposer == address(0) || proposal.canceled || proposal.executed) {
             return false;
         }
-        
+
         if (block.timestamp < proposal.endTime) {
             return false; // Voting not ended
         }
-        
+
         if (proposal.forVotes + proposal.againstVotes < quorumVotes) {
             return false; // Quorum not reached
         }
-        
+
         return proposal.forVotes > proposal.againstVotes;
     }
 }
