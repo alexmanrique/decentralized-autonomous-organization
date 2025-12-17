@@ -22,6 +22,8 @@ contract DAOTreasury is Ownable {
     event FundsSpend(uint256 indexed proposalId, address indexed recipient, uint256 amount, address token);
     event TreasuryFunded(address indexed sender, uint256 amount);
     event DAOSet(address indexed dao);
+    event EmergencyWithdraw(address indexed token, uint256 amount, address indexed recipient);
+    event ProposalExecuted(uint256 indexed proposalId);
 
     constructor(address _dao) Ownable(msg.sender) {
         dao = DAO(_dao);
@@ -31,7 +33,7 @@ contract DAOTreasury is Ownable {
         require(msg.value > 0, "Amount must be greater than zero");
     }
 
-    function setDAO(address _dao) external onlyOwner {
+    function setDao(address _dao) external onlyOwner {
         require(_dao != address(0), "Invalid DAO address");
         dao = DAO(_dao);
         emit DAOSet(_dao);
@@ -58,7 +60,7 @@ contract DAOTreasury is Ownable {
         } else {
             IERC20 tokenContract = IERC20(token);
             require(tokenContract.balanceOf(address(this)) >= amount, "Insufficient balance");
-            require(tokenContract.safeTransfer(recipient, amount), "Token transfer failed");
+            tokenContract.safeTransfer(recipient, amount);
         }
         emit ProposalExecuted(proposalId);
     }
