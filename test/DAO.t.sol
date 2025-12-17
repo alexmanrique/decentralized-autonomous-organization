@@ -71,4 +71,28 @@ contract DAOTest is Test {
         vm.expectRevert("Invalid recipient address");
         dao.createProposal(aDescription, address(0), amountInput, aToken);
     }
+
+    function testVote() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        (bool hasVoted, bool votedFor) = dao.getVoteInfo(0, address(this));
+        assertEq(hasVoted, true);
+        assertEq(votedFor, true);
+    }
+
+    function testVote_InvalidProposal() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        vm.expectRevert("Proposal not found");
+        dao.vote(0, true);
+    }
+
+    function testVote_AlreadyVoted() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        vm.expectRevert("Already voted");
+        dao.vote(0, true);
+    }
+
 }
