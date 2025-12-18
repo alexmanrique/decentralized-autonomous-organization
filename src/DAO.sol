@@ -119,7 +119,6 @@ contract DAO is Ownable {
         require(proposal.proposer != address(0), "Proposal not found");
         require(proposal.proposer == msg.sender || msg.sender == owner(), "Only proposer or owner can cancel proposal");
         require(block.timestamp < proposal.startTime, "Voting has started");
-        require(!proposal.executed, "Proposal is executed");
         require(!proposal.canceled, "Proposal is canceled");
 
         proposal.canceled = true;

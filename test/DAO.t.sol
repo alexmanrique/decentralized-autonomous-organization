@@ -17,6 +17,7 @@ contract DAOTest is Test {
     uint256 amountInput;
     string aDescription;
     uint256 aVotingPeriod;
+    uint256 aQuorumVotes;
 
     function setUp() public {
         aRecipient = makeAddr("recipient");
@@ -27,9 +28,8 @@ contract DAOTest is Test {
         governanceToken = new DAOGoveranceToken("Governance Token", "GOV", 1000000000000000000000000);
         treasury = new DAOTreasury(address(dao));
         proposalThreshold = 1000000000000000000000000;
-        dao = new DAO(
-            address(governanceToken), address(treasury), proposalThreshold, aVotingPeriod, 1000000000000000000000000
-        );
+        aQuorumVotes = 1;
+        dao = new DAO(address(governanceToken), address(treasury), proposalThreshold, aVotingPeriod, aQuorumVotes);
     }
 
     function testCreateProposal() public {
@@ -143,6 +143,22 @@ contract DAOTest is Test {
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
         vm.warp(currentTime + 1);
         vm.expectRevert("Voting has started");
+        dao.cancelProposal(0);
+    }
+
+    function testCancelProposal_ProposalCanceled() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime - 1);
+        dao.cancelProposal(0);
+        vm.expectRevert("Proposal is canceled");
+        dao.cancelProposal(0);
+    }
+
+    function testCancelProposal_ProposalNotFound() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        vm.expectRevert("Proposal not found");
         dao.cancelProposal(0);
     }
 }
