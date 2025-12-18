@@ -7,7 +7,7 @@ import {Test} from "../lib/forge-std/src/Test.sol";
 contract DAOGoveranceTokenTest is Test {
     DAOGoveranceToken public governanceToken;
 
-    uint256 public constant INITIAL_SUPPLY = 1_000_000 * 10**18; // 1 million tokens
+    uint256 public constant INITIAL_SUPPLY = 1_000_000 * 10 ** 18; // 1 million tokens
     uint256 public constant ZERO_BALANCE = 0;
 
     function setUp() public {
@@ -41,5 +41,4 @@ contract DAOGoveranceTokenTest is Test {
         assertEq(governanceToken.balanceOf(delegate), ZERO_BALANCE);
         assertEq(governanceToken.delegatedVotes(delegate), ZERO_BALANCE);
     }
-
 }
