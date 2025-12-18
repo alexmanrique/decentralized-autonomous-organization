@@ -80,4 +80,44 @@ contract DAOTreasuryTest is Test {
         assertEq(token.balanceOf(address(treasury)), amount);
         assertEq(token.balanceOf(address(this)), 0);
     }
+
+    function testEmergencyWithdrawETH() public {
+        // First, deposit ETH to the treasury
+        treasury.deposit{value: DEPOSIT_AMOUNT}();
+        assertEq(address(treasury).balance, DEPOSIT_AMOUNT);
+
+        address recipient = makeAddr("recipient");
+        uint256 amount = 1 ether;
+        address token = address(0); // ETH
+
+        // Emergency withdraw ETH (only owner can call)
+        treasury.emergencyWithdraw(token, amount, recipient);
+
+        assertEq(address(treasury).balance, 0);
+        assertEq(recipient.balance, amount);
+    }
+
+    function testEmergencyWithdrawToken() public {
+        // Create a mock ERC20 token
+        ERC20Mock token = new ERC20Mock();
+        uint256 amount = 1 ether;
+
+        // Mint tokens to the test contract
+        token.mint(address(this), amount);
+        
+        // Approve the treasury to spend tokens
+        token.approve(address(treasury), amount);
+        
+        // Fund the treasury with tokens
+        treasury.fundTreasuryWithToken(address(token), amount);
+        assertEq(token.balanceOf(address(treasury)), amount);
+
+        address recipient = makeAddr("recipient");
+
+        // Emergency withdraw tokens (only owner can call)
+        treasury.emergencyWithdraw(address(token), amount, recipient);
+
+        assertEq(token.balanceOf(address(treasury)), 0);
+        assertEq(token.balanceOf(recipient), amount);
+    }
 }

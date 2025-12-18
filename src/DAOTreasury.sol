@@ -94,10 +94,9 @@ contract DAOTreasury is Ownable {
         } else {
             IERC20 tokenContract = IERC20(token);
             require(tokenContract.balanceOf(address(this)) >= amount, "Insufficient balance");
-            require(tokenContract.transfer(recipient, amount), "Token transfer failed");
+            tokenContract.safeTransfer(recipient, amount);
         }
 
-        require(IERC20(token).transfer(recipient, amount), "Transfer failed");
         emit EmergencyWithdraw(token, amount, recipient);
     }
 }
