@@ -13,35 +13,29 @@ contract DAOTest is Test {
     DAOTreasury public treasury;
     ERC20Mock public mockToken;
 
-    uint256 public proposalThreshold;
-    address aRecipient;
-    address aToken;
-    uint256 amountInput;
-    string aDescription;
-    uint256 aVotingPeriod;
-    uint256 aQuorumVotes;
+    // Constants
+    uint256 public constant INITIAL_SUPPLY = 1_000_000_000_000_000_000_000_000; // 1e24
+    uint256 public constant PROPOSAL_THRESHOLD = 1_000_000_000_000_000_000_000_000; // 1e24
+    uint256 public constant VOTING_PERIOD = 1_000_000_000_000_000_000_000_000; // 1e24
+    uint256 public constant QUORUM_VOTES = 1;
+    uint256 public constant AMOUNT_INPUT = 1_000_000_000_000_000_000_000_000; // 1e24
+    string public constant DESCRIPTION = "Test Proposal";
+    address public constant RECIPIENT = address(0x1234567890123456789012345678901234567890);
 
     function setUp() public {
-        aRecipient = makeAddr("recipient");
-        amountInput = 1000000000000000000000000;
-        aDescription = "Test Proposal";
-        aVotingPeriod = 1000000000000000000000000;
-        governanceToken = new DAOGoveranceToken("Governance Token", "GOV", 1000000000000000000000000);
+        governanceToken = new DAOGoveranceToken("Governance Token", "GOV", INITIAL_SUPPLY);
         mockToken = new ERC20Mock();
-        aToken = address(mockToken);
-        proposalThreshold = 1000000000000000000000000;
-        aQuorumVotes = 1;
         // Create treasury with address(0) first, will be updated after DAO creation
         treasury = new DAOTreasury(address(this));
         // Create DAO with treasury address
-        dao = new DAO(address(governanceToken), address(treasury), proposalThreshold, aVotingPeriod, aQuorumVotes);
+        dao = new DAO(address(governanceToken), address(treasury), PROPOSAL_THRESHOLD, VOTING_PERIOD, QUORUM_VOTES);
         // Update treasury to reference the actual DAO
         treasury.setDao(address(dao));
     }
 
     function testCreateProposal() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         (
             address proposer,
             string memory description,,,
@@ -56,30 +50,30 @@ contract DAOTest is Test {
 
         assertEq(dao.proposalCount(), 1);
         assertEq(proposer, address(this));
-        assertEq(description, aDescription);
-        assertEq(recipient, aRecipient);
-        assertEq(amount, amountInput);
-        assertEq(token, aToken);
+        assertEq(description, DESCRIPTION);
+        assertEq(recipient, RECIPIENT);
+        assertEq(amount, AMOUNT_INPUT);
+        assertEq(token, address(mockToken));
         assertEq(startTime, block.timestamp);
-        assertEq(endTime, block.timestamp + 1000000000000000000000000);
+        assertEq(endTime, block.timestamp + VOTING_PERIOD);
         assertEq(executed, false);
         assertEq(canceled, false);
     }
 
     function testCreateProposal_InsufficientVotingPower() public {
         vm.expectRevert("Insufficient voting power");
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
     }
 
     function testCreateProposal_InvalidRecipient() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         vm.expectRevert("Invalid recipient address");
-        dao.createProposal(aDescription, address(0), amountInput, aToken);
+        dao.createProposal(DESCRIPTION, address(0), AMOUNT_INPUT, address(mockToken));
     }
 
     function testVote() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
         (bool hasVoted, bool votedFor) = dao.getVoteInfo(0, address(this));
         assertEq(hasVoted, true);
@@ -87,29 +81,29 @@ contract DAOTest is Test {
     }
 
     function testVote_InvalidProposal() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         vm.expectRevert("Proposal not found");
         dao.vote(0, true);
     }
 
     function testVote_AlreadyVoted() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
         vm.expectRevert("Already voted");
         dao.vote(0, true);
     }
 
     function testVote_ProposalNotFound() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         vm.expectRevert("Proposal not found");
         dao.vote(0, true);
     }
 
     function testVote_ProposalCanceled() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         dao.cancelProposal(0);
         vm.expectRevert("Proposal is canceled");
@@ -118,45 +112,45 @@ contract DAOTest is Test {
     }
 
     function testVote_VotingNotStarted() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         vm.expectRevert("Voting not started");
         dao.vote(0, true);
     }
 
     function testVote_VotingEnded() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
-        vm.warp(currentTime + aVotingPeriod + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
+        vm.warp(currentTime + VOTING_PERIOD + 1);
         vm.expectRevert("Voting ended");
         dao.vote(0, true);
     }
 
     function testVote_VotingHasNotStarted() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         vm.expectRevert("Voting not started");
         dao.vote(0, true);
     }
 
     function testCancelProposal_VotingHasStarted() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime + 1);
         vm.expectRevert("Voting has started");
         dao.cancelProposal(0);
     }
 
     function testCancelProposal_ProposalCanceled() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         dao.cancelProposal(0);
         vm.expectRevert("Proposal is canceled");
@@ -164,15 +158,15 @@ contract DAOTest is Test {
     }
 
     function testCancelProposal_ProposalNotFound() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         vm.expectRevert("Proposal not found");
         dao.cancelProposal(0);
     }
 
     function testCancelProposal_NotProposer() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         vm.expectRevert("Only proposer or owner can cancel proposal");
         vm.startPrank(makeAddr("not proposer"));
@@ -181,9 +175,9 @@ contract DAOTest is Test {
     }
 
     function testCancelProposalSuccess() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         uint256 currentTime = block.timestamp;
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         vm.warp(currentTime - 1);
         dao.cancelProposal(0);
 
@@ -197,39 +191,39 @@ contract DAOTest is Test {
     }
 
     function testExecuteProposal() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         // Fund the treasury with the mock token
-        mockToken.mint(address(treasury), amountInput);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        mockToken.mint(address(treasury), AMOUNT_INPUT);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
-        vm.warp(block.timestamp + aVotingPeriod + 1);
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
         dao.executeProposal(0);
         assertEq(dao.isExecuted(0), true);
         // Verify the token was transferred to the recipient
-        assertEq(mockToken.balanceOf(aRecipient), amountInput);
+        assertEq(mockToken.balanceOf(RECIPIENT), AMOUNT_INPUT);
         assertEq(mockToken.balanceOf(address(treasury)), 0);
     }
 
     function testExecuteProposal_proposalNotFound() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
         vm.expectRevert("Proposal not found");
         dao.executeProposal(0);
     }
 
     function testExecuteProposal_votingNotEnded() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
-        vm.warp(block.timestamp + aVotingPeriod - 1);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
+        vm.warp(block.timestamp + VOTING_PERIOD - 1);
         vm.expectRevert("Voting has not ended");
         dao.executeProposal(0);
     }
 
     function testExecuteProposal_proposalAlreadyExecuted() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
-        vm.warp(block.timestamp + aVotingPeriod + 1);
-        mockToken.mint(address(treasury), amountInput);
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
+        mockToken.mint(address(treasury), AMOUNT_INPUT);
         dao.executeProposal(0);
         vm.expectRevert("Proposal is executed");
         dao.executeProposal(0);
@@ -241,8 +235,8 @@ contract DAOTest is Test {
     }
 
     function testGetProposal() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         (
             address proposer,
             string memory description,
@@ -257,19 +251,19 @@ contract DAOTest is Test {
             address token
         ) = dao.getProposal(0);
         assertEq(proposer, address(this));
-        assertEq(description, aDescription);
-        assertEq(recipient, aRecipient);
-        assertEq(amount, amountInput);
-        assertEq(token, aToken);
+        assertEq(description, DESCRIPTION);
+        assertEq(recipient, RECIPIENT);
+        assertEq(amount, AMOUNT_INPUT);
+        assertEq(token, address(mockToken));
         assertEq(startTime, block.timestamp);
-        assertEq(endTime, block.timestamp + aVotingPeriod);
+        assertEq(endTime, block.timestamp + VOTING_PERIOD);
         assertEq(executed, false);
         assertEq(canceled, false);
     }
 
     function testGetVoteInfo() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
         (bool hasVoted, bool votedFor) = dao.getVoteInfo(0, address(this));
         assertEq(hasVoted, true);
@@ -277,33 +271,33 @@ contract DAOTest is Test {
     }
 
     function testUpdateConfiguration() public {
-        dao.updateConfiguration(proposalThreshold, aVotingPeriod, aQuorumVotes);
-        assertEq(dao.getProposalThreshold(), proposalThreshold);
-        assertEq(dao.getVotingPeriod(), aVotingPeriod);
-        assertEq(dao.getQuorumVotes(), aQuorumVotes);
+        dao.updateConfiguration(PROPOSAL_THRESHOLD, VOTING_PERIOD, QUORUM_VOTES);
+        assertEq(dao.getProposalThreshold(), PROPOSAL_THRESHOLD);
+        assertEq(dao.getVotingPeriod(), VOTING_PERIOD);
+        assertEq(dao.getQuorumVotes(), QUORUM_VOTES);
     }
 
     function testProposal_Passed() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, true);
-        vm.warp(block.timestamp + aVotingPeriod + 1);
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
         assertEq(dao.proposalPassed(0), true);
     }
 
     function testProposalNotPassed_VotingNotEnded() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, false);
-        vm.warp(block.timestamp + aVotingPeriod + 1);
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
         assertEq(dao.proposalPassed(0), false);
     }
 
     function testProposalNotPassed_QuorumNotReached() public {
-        governanceToken.mint(address(this), proposalThreshold + 1);
-        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        governanceToken.mint(address(this), PROPOSAL_THRESHOLD + 1);
+        dao.createProposal(DESCRIPTION, RECIPIENT, AMOUNT_INPUT, address(mockToken));
         dao.vote(0, false);
-        vm.warp(block.timestamp + aVotingPeriod + 1);
+        vm.warp(block.timestamp + VOTING_PERIOD + 1);
         assertEq(dao.proposalPassed(0), false);
     }
 }

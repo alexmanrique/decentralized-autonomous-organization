@@ -104,10 +104,10 @@ contract DAOTreasuryTest is Test {
 
         // Mint tokens to the test contract
         token.mint(address(this), amount);
-        
+
         // Approve the treasury to spend tokens
         token.approve(address(treasury), amount);
-        
+
         // Fund the treasury with tokens
         treasury.fundTreasuryWithToken(address(token), amount);
         assertEq(token.balanceOf(address(treasury)), amount);
