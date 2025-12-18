@@ -16,21 +16,19 @@ contract DAOTest is Test {
     address aToken;
     uint256 amountInput;
     string aDescription;
+    uint256 aVotingPeriod;
 
     function setUp() public {
         aRecipient = makeAddr("recipient");
         aToken = makeAddr("token");
         amountInput = 1000000000000000000000000;
         aDescription = "Test Proposal";
+        aVotingPeriod = 1000000000000000000000000;
         governanceToken = new DAOGoveranceToken("Governance Token", "GOV", 1000000000000000000000000);
         treasury = new DAOTreasury(address(dao));
         proposalThreshold = 1000000000000000000000000;
         dao = new DAO(
-            address(governanceToken),
-            address(treasury),
-            proposalThreshold,
-            1000000000000000000000000,
-            1000000000000000000000000
+            address(governanceToken), address(treasury), proposalThreshold, aVotingPeriod, 1000000000000000000000000
         );
     }
 
@@ -101,4 +99,39 @@ contract DAOTest is Test {
         dao.vote(0, true);
     }
 
+    function testVote_VotingNotStarted() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime - 1);
+        vm.expectRevert("Voting not started");
+        dao.vote(0, true);
+    }
+
+    function testVote_VotingEnded() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime + aVotingPeriod + 1);
+        vm.expectRevert("Voting ended");
+        dao.vote(0, true);
+    }
+
+    function testVote_VotingHasNotStarted() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime - 1);
+        vm.expectRevert("Voting not started");
+        dao.vote(0, true);
+    }
+
+    function testCancelProposal_VotingHasStarted() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime + 1);
+        vm.expectRevert("Voting has started");
+        dao.cancelProposal(0);
+    }
 }
