@@ -5,11 +5,13 @@ import {Test} from "../lib/forge-std/src/Test.sol";
 import {DAO} from "../src/DAO.sol";
 import {DAOGoveranceToken} from "../src/DAOGoveranceToken.sol";
 import {DAOTreasury} from "../src/DAOTreasury.sol";
+import {ERC20Mock} from "../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
 contract DAOTest is Test {
     DAO public dao;
     DAOGoveranceToken public governanceToken;
     DAOTreasury public treasury;
+    ERC20Mock public mockToken;
 
     uint256 public proposalThreshold;
     address aRecipient;
@@ -21,15 +23,20 @@ contract DAOTest is Test {
 
     function setUp() public {
         aRecipient = makeAddr("recipient");
-        aToken = makeAddr("token");
         amountInput = 1000000000000000000000000;
         aDescription = "Test Proposal";
         aVotingPeriod = 1000000000000000000000000;
         governanceToken = new DAOGoveranceToken("Governance Token", "GOV", 1000000000000000000000000);
-        treasury = new DAOTreasury(address(dao));
+        mockToken = new ERC20Mock();
+        aToken = address(mockToken);
         proposalThreshold = 1000000000000000000000000;
         aQuorumVotes = 1;
+        // Create treasury with address(0) first, will be updated after DAO creation
+        treasury = new DAOTreasury(address(this));
+        // Create DAO with treasury address
         dao = new DAO(address(governanceToken), address(treasury), proposalThreshold, aVotingPeriod, aQuorumVotes);
+        // Update treasury to reference the actual DAO
+        treasury.setDao(address(dao));
     }
 
     function testCreateProposal() public {
@@ -190,4 +197,44 @@ contract DAOTest is Test {
         // (, , , , , , , , bool canceled, , , ) = dao.proposals(0);
         // assertEq(canceled, true);
     }
+
+    function testExecuteProposal() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        // Fund the treasury with the mock token
+        mockToken.mint(address(treasury), amountInput);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        vm.warp(block.timestamp + aVotingPeriod + 1);
+        dao.executeProposal(0);
+        assertEq(dao.isExecuted(0), true);
+        // Verify the token was transferred to the recipient
+        assertEq(mockToken.balanceOf(aRecipient), amountInput);
+        assertEq(mockToken.balanceOf(address(treasury)), 0);
+    }
+
+    function testExecuteProposal_proposalNotFound() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        vm.expectRevert("Proposal not found");
+        dao.executeProposal(0);
+    }
+
+    function testExecuteProposal_votingNotEnded() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(block.timestamp + aVotingPeriod - 1);
+        vm.expectRevert("Voting has not ended");
+        dao.executeProposal(0);
+    }
+
+    function testExecuteProposal_proposalAlreadyExecuted() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        vm.warp(block.timestamp + aVotingPeriod + 1);
+        mockToken.mint(address(treasury), amountInput);
+        dao.executeProposal(0);
+        vm.expectRevert("Proposal is executed");
+        dao.executeProposal(0);
+    }
+
 }
