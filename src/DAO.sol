@@ -34,9 +34,9 @@ contract DAO is Ownable {
     uint256 public proposalCount;
     mapping(uint256 => Proposal) public proposals;
 
-    uint256 proposalThreshold;
-    uint256 votingPeriod;
-    uint256 quorumVotes;
+    uint256 private proposalThreshold;
+    uint256 private votingPeriod;
+    uint256 private quorumVotes;
 
     event ProposalCreated(
         uint256 indexed proposalId, address indexed proposer, string description, uint256 startTime, uint256 endTime
@@ -273,5 +273,29 @@ contract DAO is Ownable {
      */
     function isExecuted(uint256 proposalId) external view returns (bool executed) {
         return proposals[proposalId].executed;
+    }
+
+    /**
+     * @dev Get the proposal threshold
+     * @return threshold The minimum number of tokens required to create a proposal
+     */
+    function getProposalThreshold() external view returns (uint256 threshold) {
+        return proposalThreshold;
+    }
+
+    /**
+     * @dev Get the voting period
+     * @return period The duration of the voting period in seconds
+     */
+    function getVotingPeriod() external view returns (uint256 period) {
+        return votingPeriod;
+    }
+
+    /**
+     * @dev Get the quorum votes
+     * @return quorum The minimum votes required for proposal to pass
+     */
+    function getQuorumVotes() external view returns (uint256 quorum) {
+        return quorumVotes;
     }
 }

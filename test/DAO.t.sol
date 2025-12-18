@@ -237,4 +237,64 @@ contract DAOTest is Test {
         dao.executeProposal(0);
     }
 
+    function testSetGovernanceToken() public {
+        dao.setGovernanceToken(address(governanceToken));
+        assertEq(address(dao.governanceToken()), address(governanceToken));
+    }
+
+    function testGetProposal() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        (address proposer, string memory description, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled, address recipient, uint256 amount, address token) = dao.getProposal(0);
+        assertEq(proposer, address(this));
+        assertEq(description, aDescription);
+        assertEq(recipient, aRecipient);
+        assertEq(amount, amountInput);
+        assertEq(token, aToken);
+        assertEq(startTime, block.timestamp);
+        assertEq(endTime, block.timestamp + aVotingPeriod);
+        assertEq(executed, false);
+        assertEq(canceled, false);
+    }
+
+    function testGetVoteInfo() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        (bool hasVoted, bool votedFor) = dao.getVoteInfo(0, address(this));
+        assertEq(hasVoted, true);
+        assertEq(votedFor, true);
+    }
+
+    function testUpdateConfiguration() public {
+        dao.updateConfiguration(proposalThreshold, aVotingPeriod, aQuorumVotes);
+        assertEq(dao.getProposalThreshold(), proposalThreshold);
+        assertEq(dao.getVotingPeriod(), aVotingPeriod);
+        assertEq(dao.getQuorumVotes(), aQuorumVotes);
+    }
+
+    function testProposal_Passed() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, true);
+        vm.warp(block.timestamp + aVotingPeriod + 1);
+        assertEq(dao.proposalPassed(0), true);
+    }
+
+    function testProposalNotPassed_VotingNotEnded() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, false);
+        vm.warp(block.timestamp + aVotingPeriod + 1);
+        assertEq(dao.proposalPassed(0), false);
+    }
+
+    function testProposalNotPassed_QuorumNotReached() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        dao.vote(0, false);
+        vm.warp(block.timestamp + aVotingPeriod + 1);
+        assertEq(dao.proposalPassed(0), false);
+    }
+
 }
