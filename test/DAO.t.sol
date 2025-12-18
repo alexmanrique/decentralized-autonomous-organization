@@ -44,9 +44,7 @@ contract DAOTest is Test {
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
         (
             address proposer,
-            string memory description,
-            ,
-            ,
+            string memory description,,,
             uint256 startTime,
             uint256 endTime,
             bool executed,
@@ -188,10 +186,10 @@ contract DAOTest is Test {
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
         vm.warp(currentTime - 1);
         dao.cancelProposal(0);
-        
+
         // Opción más limpia: Usar función helper
         assertEq(dao.isCanceled(0), true);
-        
+
         // Opción alternativa: Usar el mapping público directamente con desestructuración parcial
         // El mapping público devuelve 12 valores: (id, proposer, description, forVotes, againstVotes, startTime, endTime, executed, canceled, recipient, amount, token)
         // (, , , , , , , , bool canceled, , , ) = dao.proposals(0);
@@ -245,7 +243,19 @@ contract DAOTest is Test {
     function testGetProposal() public {
         governanceToken.mint(address(this), proposalThreshold + 1);
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
-        (address proposer, string memory description, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled, address recipient, uint256 amount, address token) = dao.getProposal(0);
+        (
+            address proposer,
+            string memory description,
+            uint256 forVotes,
+            uint256 againstVotes,
+            uint256 startTime,
+            uint256 endTime,
+            bool executed,
+            bool canceled,
+            address recipient,
+            uint256 amount,
+            address token
+        ) = dao.getProposal(0);
         assertEq(proposer, address(this));
         assertEq(description, aDescription);
         assertEq(recipient, aRecipient);
@@ -296,5 +306,4 @@ contract DAOTest is Test {
         vm.warp(block.timestamp + aVotingPeriod + 1);
         assertEq(dao.proposalPassed(0), false);
     }
-
 }
