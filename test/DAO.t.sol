@@ -103,13 +103,13 @@ contract DAOTest is Test {
         governanceToken.mint(address(this), proposalThreshold + 1);
         uint256 currentTime = block.timestamp;
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
-        vm.warp(currentTime -1);
+        vm.warp(currentTime - 1);
         dao.cancelProposal(0);
         vm.expectRevert("Proposal is canceled");
         vm.warp(currentTime + 1);
         dao.vote(0, true);
     }
-    
+
     function testVote_VotingNotStarted() public {
         governanceToken.mint(address(this), proposalThreshold + 1);
         uint256 currentTime = block.timestamp;
@@ -145,6 +145,4 @@ contract DAOTest is Test {
         vm.expectRevert("Voting has started");
         dao.cancelProposal(0);
     }
-
-    
 }
