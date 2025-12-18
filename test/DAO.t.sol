@@ -95,4 +95,10 @@ contract DAOTest is Test {
         dao.vote(0, true);
     }
 
+    function testVote_ProposalNotFound() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        vm.expectRevert("Proposal not found");
+        dao.vote(0, true);
+    }
+
 }
