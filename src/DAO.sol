@@ -256,4 +256,22 @@ contract DAO is Ownable {
 
         return proposal.forVotes > proposal.againstVotes;
     }
+
+    /**
+     * @dev Check if a proposal is canceled
+     * @param proposalId ID of the proposal
+     * @return canceled Whether the proposal is canceled
+     */
+    function isCanceled(uint256 proposalId) external view returns (bool canceled) {
+        return proposals[proposalId].canceled;
+    }
+
+    /**
+     * @dev Check if a proposal is executed
+     * @param proposalId ID of the proposal
+     * @return executed Whether the proposal is executed
+     */
+    function isExecuted(uint256 proposalId) external view returns (bool executed) {
+        return proposals[proposalId].executed;
+    }
 }

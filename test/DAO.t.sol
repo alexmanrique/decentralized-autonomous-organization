@@ -37,7 +37,9 @@ contract DAOTest is Test {
         dao.createProposal(aDescription, aRecipient, amountInput, aToken);
         (
             address proposer,
-            string memory description,,,
+            string memory description,
+            ,
+            ,
             uint256 startTime,
             uint256 endTime,
             bool executed,
@@ -160,5 +162,32 @@ contract DAOTest is Test {
         governanceToken.mint(address(this), proposalThreshold + 1);
         vm.expectRevert("Proposal not found");
         dao.cancelProposal(0);
+    }
+
+    function testCancelProposal_NotProposer() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime - 1);
+        vm.expectRevert("Only proposer or owner can cancel proposal");
+        vm.startPrank(makeAddr("not proposer"));
+        dao.cancelProposal(0);
+        vm.stopPrank();
+    }
+
+    function testCancelProposalSuccess() public {
+        governanceToken.mint(address(this), proposalThreshold + 1);
+        uint256 currentTime = block.timestamp;
+        dao.createProposal(aDescription, aRecipient, amountInput, aToken);
+        vm.warp(currentTime - 1);
+        dao.cancelProposal(0);
+        
+        // Opción más limpia: Usar función helper
+        assertEq(dao.isCanceled(0), true);
+        
+        // Opción alternativa: Usar el mapping público directamente con desestructuración parcial
+        // El mapping público devuelve 12 valores: (id, proposer, description, forVotes, againstVotes, startTime, endTime, executed, canceled, recipient, amount, token)
+        // (, , , , , , , , bool canceled, , , ) = dao.proposals(0);
+        // assertEq(canceled, true);
     }
 }
